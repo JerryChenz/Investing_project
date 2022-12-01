@@ -26,9 +26,8 @@ def _parse_table(json_info):
     """Parse the raw list. Return a clean_dict with t-i year and value pair"""
     clean_dict = {}
 
-    reversed_info = reversed(json_info)
-    year = list(reversed_info)[0]['asOfDate'][:4]
-    for yearly in reversed_info:
+    year = int(list(reversed(json_info))[0]['asOfDate'][:4])
+    for yearly in reversed(json_info):
         if yearly:
             clean_dict[year] = yearly['reportedValue']['raw']
         else:
@@ -46,7 +45,6 @@ def get_income_statement(ticker):
 
     json_data = scrap_data(ticker, url_financials)
     json_is = json_data['context']['dispatcher']['stores']['QuoteTimeSeriesStore']['timeSeries']
-    print(json_is)
 
     # sales
     sales_dict = _parse_table(json_is['annualTotalRevenue'])

@@ -1,6 +1,8 @@
 import scrap_mod
 import yahoo_fin
 import excel_mod
+import openpyxl
+import pandas as pd
 
 
 class Securities:
@@ -19,15 +21,23 @@ class Stock(Securities):
         self.is_df = scrap_mod.get_income_statement(security_code)
         self.bs_df = scrap_mod.get_balance_sheet(security_code)
 
+    def export_data(self):
+        """Return a raw_fin_data xlxs for the stock"""
+
+        # Initialize the stock object given ticker
+        self.bs_df
+        self.is_df
+
+    def export_income_statement(self):
+        print(type(self.is_df))
+        #for index, row in self.is_df:
+            #print(row['sales'], row['cogs'])
 
 if __name__ == '__main__':
     ticker = '1475.HK'
     raw_data_filename = 'Raw_fin_data.xlsx'
-
-    #s = Stock(ticker)
-    df = scrap_mod.get_income_statement(ticker)
-    print(df)
-    #print(s.is_df)
+    s = Stock(ticker)
+    s.export_income_statement()
 
     # is_df.to_csv(f'{stock}_income_statement.csv', sep=',', encoding='utf-8')
     # bs_df.to_csv(f'{stock}_balance_sheet.csv', sep=',', encoding='utf-8')

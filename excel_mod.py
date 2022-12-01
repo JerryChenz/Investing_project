@@ -1,10 +1,4 @@
 import openpyxl
-import scrap_mod
-
-def get_raw_data(ticker):
-    """Return a raw_fin_data xlxs for the ticker"""
-
-    # Initialize the stock object given ticker
 
 
 
