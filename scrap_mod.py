@@ -3,6 +3,17 @@ import json
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
+from forex_python.converter import CurrencyRates
+
+
+def get_forex_rate(buy, sell):
+    """get exchange rate"""
+
+    if buy != sell:
+        c = CurrencyRates()
+        return c.get_rate(buy, sell)
+    else:
+        return 1
 
 
 def scrap_data(ticker, url):
@@ -91,16 +102,18 @@ def get_balance_sheet(ticker):
     cash_dict = _parse_table(json_bs['annualCashAndCashEquivalents'])
     # PP&E
     ppe_dict = _parse_table(json_bs['annualNetPPE'])
-    # Non-operating Asset Estimate
-    non_op_asset_dict = {}
-    short_investment_dict = _parse_table(json_bs['annualOtherShortTermInvestments'])
-    non_current_assets_dict = _parse_table(json_bs['annualTotalNonCurrentAssets'])
-    goodwill_dict = _parse_table(json_bs['annualGoodwillAndOtherIntangibleAssets'])
-    prepaid_dict = _parse_table(json_bs['annualNonCurrentPrepaidAssets'])
 
-    for i in non_current_assets_dict.keys():
-        non_op_asset_dict[i] = short_investment_dict[i] + non_current_assets_dict[i] \
-                               - ppe_dict[i] - goodwill_dict[i] - prepaid_dict[i]
+    """
+    Non-operating Asset Estimate (Decommissioned)
+    # non_op_asset_dict = {}
+    # short_investment_dict = _parse_table(json_bs['annualOtherShortTermInvestments'])
+    # non_current_assets_dict = _parse_table(json_bs['annualTotalNonCurrentAssets'])
+    # goodwill_dict = _parse_table(json_bs['annualGoodwillAndOtherIntangibleAssets'])
+    # prepaid_dict = _parse_table(json_bs['annualNonCurrentPrepaidAssets'])
+    # for i in non_current_assets_dict.keys():
+    #     non_op_asset_dict[i] = short_investment_dict[i] + non_current_assets_dict[i] \
+    #                            - ppe_dict[i] - goodwill_dict[i] - prepaid_dict[i]
+    """
 
     # Initialize bs_dict
     bs_dict['current_assets'] = current_assets_dict
@@ -110,7 +123,7 @@ def get_balance_sheet(ticker):
     bs_dict['equity'] = equity_dict
     bs_dict['minority_interest'] = minority_interest_dict
     bs_dict['cash'] = cash_dict
-    bs_dict['non_op_asset'] = non_op_asset_dict
+    # bs_dict['non_op_asset'] = non_op_asset_dict # Decommissioned
     bs_dict['ppe'] = ppe_dict
 
     return pd.DataFrame(bs_dict).transpose()
