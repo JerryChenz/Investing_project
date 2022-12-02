@@ -4,6 +4,7 @@ import shutil
 import pathlib
 import os
 from datetime import datetime
+import pandas as pd
 import scrap_mod
 
 
@@ -29,11 +30,14 @@ class Stock(Securities):
         self.report_currency = ticker_info['financialCurrency']
         self.is_df = scrap_mod.get_income_statement(security_code)
         self.bs_df = scrap_mod.get_balance_sheet(security_code)
+        self.next_earnings = pd.to_datetime(datetime.fromtimestamp(ticker_info['mostRecentQuarter'])
+                                            .strftime("%Y-%m-%d")) + pd.DateOffset(months=6)
 
     def create_val_xlsx(self):
         """Return a raw_fin_data xlxs for the stock"""
 
         new_val_name = ""
+        new_bool = False
 
         # Copy the latest Valuation template
         cwd = pathlib.Path.cwd().resolve()
@@ -55,26 +59,29 @@ class Stock(Securities):
             new_val_name = self.security_code + " " + os.path.basename(template_file_path[0])
             if not pathlib.Path(new_val_name).exists():
                 shutil.copy(template_file_path[0], new_val_name)
+                new_bool = True
 
         # load and update the new valuation xlsx
         wb = openpyxl.load_workbook(new_val_name)
-        self.update_dashboard(wb)
+        self.update_dashboard(wb, new_bool)
         self.update_data(wb)
 
         wb.save(new_val_name)
 
-    def update_dashboard(self, wb):
+    def update_dashboard(self, wb, new_bool=False):
         """Update the Dashboard sheet"""
 
         dash_sheet = wb['Dashboard']
-        dash_sheet.cell(row=3, column=3).value = self.security_code
-        dash_sheet.cell(row=4, column=3).value = self.name
-        dash_sheet.cell(row=5, column=3).value = datetime.today().strftime('%Y-%m-%d')
-        dash_sheet.cell(row=6, column=3).value = self.exchange
+        if new_bool:
+            dash_sheet.cell(row=3, column=3).value = self.security_code
+            dash_sheet.cell(row=4, column=3).value = self.name
+            dash_sheet.cell(row=5, column=3).value = datetime.today().strftime('%Y-%m-%d')
+            dash_sheet.cell(row=6, column=3).value = self.exchange
+            dash_sheet.cell(row=13, column=3).value = self.report_currency
+        dash_sheet.cell(row=5, column=9).value = self.next_earnings
         dash_sheet.cell(row=7, column=3).value = self.price[0]
         dash_sheet.cell(row=7, column=4).value = self.price[1]
         dash_sheet.cell(row=8, column=3).value = self.shares
-        dash_sheet.cell(row=13, column=3).value = self.report_currency
         dash_sheet.cell(row=14, column=3).value = scrap_mod.get_forex_rate(self.price[1], self.report_currency)
 
     def update_data(self, wb):
