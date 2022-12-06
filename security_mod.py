@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 import pandas as pd
 import scrap_mod
+import re
 
 
 class Asset:
@@ -55,16 +56,17 @@ class Stock(Asset):
     def create_val_xlsx(self):
         """Return a raw_fin_data xlsx for the stock"""
 
-        new_val_name = ""
         new_bool = False
+        r = re.compile(".*Valuation v")
 
         # Copy the latest Valuation template
         cwd = pathlib.Path.cwd().resolve()
         try:
             template_folder_path = cwd / 'Stock_template'
             if pathlib.Path(template_folder_path).exists():
-                template_path_list = [val_file_path for val_file_path in template_folder_path.iterdir()
-                                      if template_folder_path.is_dir() and val_file_path.is_file()]
+                path_list = [val_file_path for val_file_path in template_folder_path.iterdir()
+                             if template_folder_path.is_dir() and val_file_path.is_file()]
+                template_path_list = list(item for item in path_list if r.match(str(item)))
                 if len(template_path_list) > 1 or len(template_path_list) == 0:
                     raise FileNotFoundError("The template file error", "temp_file")
             else:
@@ -79,12 +81,11 @@ class Stock(Asset):
             if not pathlib.Path(new_val_name).exists():
                 shutil.copy(template_path_list[0], new_val_name)
                 new_bool = True
-
-        # load and update the new valuation xlsx
-        wb = openpyxl.load_workbook(new_val_name)
-        self.update_dashboard(wb, new_bool)
-        self.update_data(wb)
-        wb.save(new_val_name)
+            # load and update the new valuation xlsx
+            wb = openpyxl.load_workbook(new_val_name)
+            self.update_dashboard(wb, new_bool)
+            self.update_data(wb)
+            wb.save(new_val_name)
 
     def update_dashboard(self, wb, new_bool=False):
         """Update the Dashboard sheet"""

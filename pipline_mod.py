@@ -5,6 +5,7 @@ import security_mod
 import scrap_mod
 import yfinance
 import pandas as pd
+import re
 
 
 def update_stocks_val(dash_sheet):
@@ -59,11 +60,13 @@ class Pipeline:
 
         # Copy the latest Valuation template
         opportunities_folder_path = pathlib.Path.cwd().resolve() / 'Opportunities'
+        r = re.compile(".*Valuation v")
 
         try:
             if pathlib.Path(opportunities_folder_path).exists():
-                opportunities_path_list = [val_file_path for val_file_path in opportunities_folder_path.iterdir()
-                                           if opportunities_folder_path.is_dir() and val_file_path.is_file()]
+                path_list = [val_file_path for val_file_path in opportunities_folder_path.iterdir()
+                             if opportunities_folder_path.is_dir() and val_file_path.is_file()]
+                opportunities_path_list = list(item for item in path_list if r.match(str(item)))
                 if len(opportunities_path_list) == 0:
                     raise FileNotFoundError("No opportunity file", "opp_file")
             else:
@@ -78,11 +81,11 @@ class Pipeline:
             for p in opportunities_path_list:
                 # load and update the new valuation xlsx
                 self.assets.append(initiate_asset(p))
-        # load the opportunities
-        monitor_file_path = opportunities_folder_path / 'Pipeline_monitor' / 'Pipeline_monitor.xlsx'
-        monitor_wb = openpyxl.load_workbook(monitor_file_path)
-        self.update_monitor(monitor_wb)
-        monitor_wb.save(monitor_file_path)
+            # load the opportunities
+            monitor_file_path = opportunities_folder_path / 'Pipeline_monitor' / 'Pipeline_monitor.xlsx'
+            monitor_wb = openpyxl.load_workbook(monitor_file_path)
+            self.update_monitor(monitor_wb)
+            monitor_wb.save(monitor_file_path)
 
     def update_monitor(self, wb):
         """update the Pipeline_monitor file"""
