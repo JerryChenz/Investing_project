@@ -16,8 +16,9 @@ class Asset:
         self.name = None
         self.price = None
         self.exchange = None
-        self.excess_return = None
-        self.target_buy = None
+        self.ideal_price = None
+        self.current_irr = None
+        self.risk_premium = None
 
 
 class Stock(Asset):
@@ -59,17 +60,17 @@ class Stock(Asset):
         # Copy the latest Valuation template
         cwd = pathlib.Path.cwd().resolve()
         try:
-            template_folder_path = cwd / 'Template'
+            template_folder_path = cwd / 'Stock_template'
             if pathlib.Path(template_folder_path).exists():
                 template_path_list = [val_file_path for val_file_path in template_folder_path.iterdir()
                                       if template_folder_path.is_dir() and val_file_path.is_file()]
                 if len(template_path_list) > 1 or len(template_path_list) == 0:
                     raise FileNotFoundError("The template file error", "temp_file")
             else:
-                raise FileNotFoundError("The template folder doesn't exist", "temp_folder")
+                raise FileNotFoundError("The stock_template folder doesn't exist", "temp_folder")
         except FileNotFoundError as err:
             if err.args[1] == "temp_folder":
-                print("The template folder doesn't exist")
+                print("The stock_template folder doesn't exist")
             if err.args[1] == "temp_file":
                 print("The template file error")
         else:
@@ -82,7 +83,6 @@ class Stock(Asset):
         wb = openpyxl.load_workbook(new_val_name)
         self.update_dashboard(wb, new_bool)
         self.update_data(wb)
-
         wb.save(new_val_name)
 
     def update_dashboard(self, wb, new_bool=False):
