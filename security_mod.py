@@ -8,33 +8,34 @@ import pandas as pd
 import scrap_mod
 
 
-class Securities:
+class Asset:
     """Parent class"""
 
     def __init__(self, security_code):
         self.security_code = security_code
 
 
-class Stock(Securities):
+class Stock(Asset):
     """child class"""
 
     def __init__(self, security_code):
         """ """
         super().__init__(security_code)
 
-        ticker_info = yfinance.Ticker(security_code).info
-        self.name = ticker_info['shortName']
-        self.price = [ticker_info['currentPrice'], ticker_info['currency']]
-        self.exchange = ticker_info['exchange']
-        self.shares = ticker_info['sharesOutstanding']
-        self.report_currency = ticker_info['financialCurrency']
+        ticker_data = yfinance.Ticker(security_code)
+        self.name = ticker_data.info['shortName']
+        self.price = [ticker_data.info['currentPrice'], ticker_data.info['currency']]
+        self.dividends = ticker_data.dividends
+        self.exchange = ticker_data.info['exchange']
+        self.shares = ticker_data.info['sharesOutstanding']
+        self.report_currency = ticker_data.info['financialCurrency']
         self.is_df = scrap_mod.get_income_statement(security_code)
         self.bs_df = scrap_mod.get_balance_sheet(security_code)
-        self.next_earnings = pd.to_datetime(datetime.fromtimestamp(ticker_info['mostRecentQuarter'])
+        self.next_earnings = pd.to_datetime(datetime.fromtimestamp(ticker_data.info['mostRecentQuarter'])
                                             .strftime("%Y-%m-%d")) + pd.DateOffset(months=6)
 
     def create_val_xlsx(self):
-        """Return a raw_fin_data xlxs for the stock"""
+        """Return a raw_fin_data xlsx for the stock"""
 
         new_val_name = ""
         new_bool = False
@@ -76,13 +77,13 @@ class Stock(Securities):
             dash_sheet.cell(row=3, column=3).value = self.security_code
             dash_sheet.cell(row=4, column=3).value = self.name
             dash_sheet.cell(row=5, column=3).value = datetime.today().strftime('%Y-%m-%d')
-            dash_sheet.cell(row=6, column=3).value = self.exchange
-            dash_sheet.cell(row=13, column=3).value = self.report_currency
-        dash_sheet.cell(row=5, column=9).value = self.next_earnings
-        dash_sheet.cell(row=7, column=3).value = self.price[0]
-        dash_sheet.cell(row=7, column=4).value = self.price[1]
-        dash_sheet.cell(row=8, column=3).value = self.shares
-        dash_sheet.cell(row=14, column=3).value = scrap_mod.get_forex_rate(self.price[1], self.report_currency)
+            dash_sheet.cell(row=3, column=8).value = self.exchange
+            dash_sheet.cell(row=12, column=8).value = self.report_currency
+        dash_sheet.cell(row=6, column=3).value = self.next_earnings
+        dash_sheet.cell(row=4, column=8).value = self.price[0]
+        dash_sheet.cell(row=4, column=9).value = self.price[1]
+        dash_sheet.cell(row=5, column=8).value = self.shares
+        dash_sheet.cell(row=13, column=8).value = scrap_mod.get_forex_rate(self.price[1], self.report_currency)
 
     def update_data(self, wb):
         """Update the Data sheet"""
