@@ -19,6 +19,7 @@ class Asset:
         self.ideal_price = None
         self.current_irr = None
         self.risk_premium = None
+        self.val_status = None
 
 
 class Stock(Asset):
@@ -90,12 +91,18 @@ class Stock(Asset):
 
         dash_sheet = wb['Dashboard']
         if new_bool:
-            dash_sheet.cell(row=3, column=3).value = self.security_code
             dash_sheet.cell(row=4, column=3).value = self.name
             dash_sheet.cell(row=5, column=3).value = datetime.today().strftime('%Y-%m-%d')
-            dash_sheet.cell(row=3, column=8).value = self.exchange
-            dash_sheet.cell(row=12, column=8).value = self.report_currency
+        dash_sheet.cell(row=3, column=3).value = self.security_code
+        dash_sheet.cell(row=3, column=8).value = self.exchange
+        dash_sheet.cell(row=12, column=8).value = self.report_currency
         dash_sheet.cell(row=6, column=3).value = self.next_earnings
+        if pd.to_datetime(dash_sheet.cell(row=5, column=3).value) > \
+                pd.to_datetime(dash_sheet.cell(row=6, column=3).value):
+            self.val_status = "Outdated"
+        else:
+            self.val_status = ""
+        dash_sheet.cell(row=6, column=5).value = self.val_status
         dash_sheet.cell(row=4, column=8).value = self.price[0]
         dash_sheet.cell(row=4, column=9).value = self.price[1]
         dash_sheet.cell(row=5, column=8).value = self.shares

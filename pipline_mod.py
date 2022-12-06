@@ -2,6 +2,24 @@ import openpyxl
 import xlwings
 import pathlib
 import security_mod
+import scrap_mod
+import yfinance
+import pandas as pd
+
+
+def update_stocks_val(dash_sheet):
+    """Update the stock valuations in the pipeline folder"""
+
+    ticker_info = yfinance.Ticker(dash_sheet.cell(row=3, column=3).value).info
+
+    if pd.to_datetime(dash_sheet.cell(row=5, column=3).value) > pd.to_datetime(dash_sheet.cell(row=5, column=3).value):
+        dash_sheet.cell(row=6, column=5).value = "Outdated"
+    else:
+        dash_sheet.cell(row=6, column=5).value = ""
+    dash_sheet.cell(row=4, column=8).value = ticker_info['currentPrice']
+    # dash_sheet.cell(row=5, column=8).value = ticker_info['sharesOutstanding']
+    dash_sheet.cell(row=13, column=8).value = scrap_mod.get_forex_rate(dash_sheet.cell(row=4, column=9).value,
+                                                                       dash_sheet.cell(row=12, column=8).value)
 
 
 def initiate_asset(p):
@@ -15,8 +33,10 @@ def initiate_asset(p):
     excel_app.quit()
     wb = openpyxl.load_workbook(filename=p, data_only=True)
 
+    # Update the stock_valuations files first
     dash_sheet = wb['Dashboard']
-    print(dash_sheet.cell(row=21, column=8).value)
+    update_stocks_val(dash_sheet)
+    wb.save(p)
 
     a = security_mod.Asset(dash_sheet.cell(row=3, column=3).value)
     a.name = dash_sheet.cell(row=4, column=3).value
@@ -25,6 +45,7 @@ def initiate_asset(p):
     a.ideal_price = dash_sheet.cell(row=21, column=3).value
     a.current_irr = dash_sheet.cell(row=21, column=8).value
     a.risk_premium = dash_sheet.cell(row=22, column=8).value
+    a.val_status = dash_sheet.cell(row=6, column=5).value
 
     return a
 
@@ -68,7 +89,11 @@ class Pipeline:
     def update_monitor(self, wb):
         """update the Pipeline_monitor file"""
 
+        # Clear existing data
         monitor_sheet = wb['Monitor']
+        for c in monitor_sheet['B5':'I200']:
+            for cell in c:
+                cell.value = None
 
         r = 5
         for a in self.assets:
@@ -80,5 +105,5 @@ class Pipeline:
             monitor_sheet.cell(row=r, column=7).value = a.risk_premium
             monitor_sheet.cell(row=r, column=8).value = f'=F{r}-G{r}'
             monitor_sheet.cell(row=r, column=9).value = a.ideal_price
+            monitor_sheet.cell(row=r, column=10).value = a.val_status
             r += 1
-
