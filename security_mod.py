@@ -1,6 +1,7 @@
 import yfinance
 import openpyxl
 import pathlib
+import shutil
 import os
 from datetime import datetime
 import pandas as pd
@@ -80,7 +81,7 @@ class Stock(Asset):
             new_val_name = self.security_code + "_" + os.path.basename(template_path_list[0])
             new_val_path = cwd / new_val_name
             if not pathlib.Path(new_val_path).exists():
-                os.system(f'cp {template_path_list[0]} {new_val_path}')
+                shutil.copy(template_path_list[0], new_val_path)
                 new_bool = True
                 sys.exit()
             # load and update the new valuation xlsx
