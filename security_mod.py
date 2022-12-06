@@ -8,34 +8,52 @@ import pandas as pd
 import scrap_mod
 
 
-class Securities:
+class Asset:
     """Parent class"""
 
     def __init__(self, security_code):
         self.security_code = security_code
+        self.name = None
+        self.price = None
+        self.exchange = None
+        self.ideal_price = None
+        self.current_irr = None
+        self.risk_premium = None
+        self.val_status = None
 
 
-class Stock(Securities):
+class Stock(Asset):
     """child class"""
 
     def __init__(self, security_code):
         """ """
         super().__init__(security_code)
 
-        ticker_data = yfinance.Ticker(security_code)
+        self.dividends = None
+        self.shares = None
+        self.report_currency = None
+        self.is_df = None
+        self.bs_df = None
+        self.next_earnings = None
+
+    def load_from_yf(self):
+        """Scrap the data from yahoo finance"""
+
+        ticker_data = yfinance.Ticker(self.security_code)
+
         self.name = ticker_data.info['shortName']
         self.price = [ticker_data.info['currentPrice'], ticker_data.info['currency']]
         self.dividends = ticker_data.dividends
         self.exchange = ticker_data.info['exchange']
         self.shares = ticker_data.info['sharesOutstanding']
         self.report_currency = ticker_data.info['financialCurrency']
-        self.is_df = scrap_mod.get_income_statement(security_code)
-        self.bs_df = scrap_mod.get_balance_sheet(security_code)
+        self.is_df = scrap_mod.get_income_statement(self.security_code)
+        self.bs_df = scrap_mod.get_balance_sheet(self.security_code)
         self.next_earnings = pd.to_datetime(datetime.fromtimestamp(ticker_data.info['mostRecentQuarter'])
                                             .strftime("%Y-%m-%d")) + pd.DateOffset(months=6)
 
     def create_val_xlsx(self):
-        """Return a raw_fin_data xlxs for the stock"""
+        """Return a raw_fin_data xlsx for the stock"""
 
         new_val_name = ""
         new_bool = False
@@ -43,30 +61,29 @@ class Stock(Securities):
         # Copy the latest Valuation template
         cwd = pathlib.Path.cwd().resolve()
         try:
-            template_folder_path = cwd / 'Template'
+            template_folder_path = cwd / 'Stock_template'
             if pathlib.Path(template_folder_path).exists():
-                template_file_path = [val_file_path for val_file_path in template_folder_path.iterdir()
+                template_path_list = [val_file_path for val_file_path in template_folder_path.iterdir()
                                       if template_folder_path.is_dir() and val_file_path.is_file()]
-                if len(template_file_path) > 1 or len(template_file_path) == 0:
+                if len(template_path_list) > 1 or len(template_path_list) == 0:
                     raise FileNotFoundError("The template file error", "temp_file")
             else:
-                raise FileNotFoundError("The template folder doesn't exist", "temp_folder")
+                raise FileNotFoundError("The stock_template folder doesn't exist", "temp_folder")
         except FileNotFoundError as err:
             if err.args[1] == "temp_folder":
-                print("The template folder doesn't exist")
+                print("The stock_template folder doesn't exist")
             if err.args[1] == "temp_file":
                 print("The template file error")
         else:
-            new_val_name = self.security_code + " " + os.path.basename(template_file_path[0])
+            new_val_name = self.security_code + " " + os.path.basename(template_path_list[0])
             if not pathlib.Path(new_val_name).exists():
-                shutil.copy(template_file_path[0], new_val_name)
+                shutil.copy(template_path_list[0], new_val_name)
                 new_bool = True
 
         # load and update the new valuation xlsx
         wb = openpyxl.load_workbook(new_val_name)
         self.update_dashboard(wb, new_bool)
         self.update_data(wb)
-
         wb.save(new_val_name)
 
     def update_dashboard(self, wb, new_bool=False):
@@ -74,16 +91,22 @@ class Stock(Securities):
 
         dash_sheet = wb['Dashboard']
         if new_bool:
-            dash_sheet.cell(row=3, column=3).value = self.security_code
             dash_sheet.cell(row=4, column=3).value = self.name
             dash_sheet.cell(row=5, column=3).value = datetime.today().strftime('%Y-%m-%d')
-            dash_sheet.cell(row=6, column=3).value = self.exchange
-            dash_sheet.cell(row=13, column=3).value = self.report_currency
-        dash_sheet.cell(row=5, column=9).value = self.next_earnings
-        dash_sheet.cell(row=7, column=3).value = self.price[0]
-        dash_sheet.cell(row=7, column=4).value = self.price[1]
-        dash_sheet.cell(row=8, column=3).value = self.shares
-        dash_sheet.cell(row=14, column=3).value = scrap_mod.get_forex_rate(self.price[1], self.report_currency)
+        dash_sheet.cell(row=3, column=3).value = self.security_code
+        dash_sheet.cell(row=3, column=8).value = self.exchange
+        dash_sheet.cell(row=12, column=8).value = self.report_currency
+        dash_sheet.cell(row=6, column=3).value = self.next_earnings
+        if pd.to_datetime(dash_sheet.cell(row=5, column=3).value) > \
+                pd.to_datetime(dash_sheet.cell(row=6, column=3).value):
+            self.val_status = "Outdated"
+        else:
+            self.val_status = ""
+        dash_sheet.cell(row=6, column=5).value = self.val_status
+        dash_sheet.cell(row=4, column=8).value = self.price[0]
+        dash_sheet.cell(row=4, column=9).value = self.price[1]
+        dash_sheet.cell(row=5, column=8).value = self.shares
+        dash_sheet.cell(row=13, column=8).value = scrap_mod.get_forex_rate(self.price[1], self.report_currency)
 
     def update_data(self, wb):
         """Update the Data sheet"""
