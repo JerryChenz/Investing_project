@@ -1,13 +1,12 @@
 import yfinance
 import openpyxl
-import shutil
-import xlwings
 import pathlib
 import os
 from datetime import datetime
 import pandas as pd
 import scrap_mod
 import re
+import sys
 
 
 class Asset:
@@ -58,7 +57,7 @@ class Stock(Asset):
         """Return a raw_fin_data xlsx for the stock"""
 
         new_bool = False
-        r = re.compile(".*Valuation v")
+        r = re.compile(".*Valuation_v")
 
         # Copy the latest Valuation template
         cwd = pathlib.Path.cwd().resolve()
@@ -78,17 +77,20 @@ class Stock(Asset):
             if err.args[1] == "temp_file":
                 print("The template file error")
         else:
-            new_val_name = self.security_code + " " + os.path.basename(template_path_list[0])
-            if not pathlib.Path(new_val_name).exists():
-                shutil.copy2(template_path_list[0], new_val_name)
-                # with xlwings.App(visible=False) as app:
-                #     xl_book = xlwings.Book(p)
+            new_val_name = self.security_code + "_" + os.path.basename(template_path_list[0])
+            new_val_path = cwd / new_val_name
+            if not pathlib.Path(new_val_path).exists():
+                os.system(f'cp {template_path_list[0]} {new_val_path}')
                 new_bool = True
+                sys.exit()
             # load and update the new valuation xlsx
-            wb = openpyxl.load_workbook(new_val_name)
-            self.update_dashboard(wb, new_bool)
-            self.update_data(wb)
-            wb.save(new_val_name)
+            if os.path.exists(new_val_path):
+                wb = openpyxl.load_workbook(new_val_name)
+                self.update_dashboard(wb, new_bool)
+                self.update_data(wb)
+                wb.save(new_val_name)
+            else:
+                print('missing')
 
     def update_dashboard(self, wb, new_bool=False):
         """Update the Dashboard sheet"""
