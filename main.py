@@ -26,9 +26,9 @@ def update_pipeline_monitor():
 
 
 if __name__ == '__main__':
-    # stare_list = ['0806.HK', '1475.HK', '1766.HK', '6186.HK']
-    # for s in stare_list:
-    #     gen_val_xlsx(s)
+    #stare_list = ['0806.HK', '1475.HK', '1766.HK', '6186.HK']
+    #for s in stare_list:
+    #    gen_val_xlsx(s)
     update_pipeline_monitor()
 
     # stock_info = yahoo_fin.get_quote_table(stock)

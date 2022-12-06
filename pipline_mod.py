@@ -25,27 +25,25 @@ def update_stocks_val(dash_sheet):
 def initiate_asset(p):
     """initiate an asset from the valuation file"""
 
-    # get the formula results using xlwings because openpyxl doesn't evaluate formula
-    excel_app = xlwings.App(visible=False)
-    excel_book = excel_app.books.open(p)
-    excel_book.save()
-    excel_book.close()
-    excel_app.quit()
-    wb = openpyxl.load_workbook(filename=p, data_only=True)
-
     # Update the stock_valuations files first
-    dash_sheet = wb['Dashboard']
-    update_stocks_val(dash_sheet)
+    wb = openpyxl.load_workbook(filename=p)
+    dash_sheet_1 = wb['Dashboard']
+    update_stocks_val(dash_sheet_1)
     wb.save(p)
 
-    a = security_mod.Asset(dash_sheet.cell(row=3, column=3).value)
-    a.name = dash_sheet.cell(row=4, column=3).value
-    a.exchange = dash_sheet.cell(row=3, column=8).value
-    a.price = dash_sheet.cell(row=4, column=8).value
-    a.ideal_price = dash_sheet.cell(row=21, column=3).value
-    a.current_irr = dash_sheet.cell(row=21, column=8).value
-    a.risk_premium = dash_sheet.cell(row=22, column=8).value
-    a.val_status = dash_sheet.cell(row=6, column=5).value
+    # get the formula results using xlwings because openpyxl doesn't evaluate formula
+    with xlwings.App(visible=False) as app:
+        xl_book = xlwings.Book(p)
+        dash_sheet_2 = xl_book.sheets('Dashboard')
+        a = security_mod.Asset(dash_sheet_2.range('C3').value)
+        a.name = dash_sheet_2.range('C4').value
+        a.exchange = dash_sheet_2.range('H3').value
+        a.price = dash_sheet_2.range('H4').value
+        a.ideal_price = dash_sheet_2.range('C21').value
+        a.current_irr = dash_sheet_2.range('H21').value
+        a.risk_premium = dash_sheet_2.range('H22').value
+        a.val_status = dash_sheet_2.range('E6').value
+        xl_book.close()
 
     return a
 
