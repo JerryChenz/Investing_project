@@ -1,6 +1,7 @@
 import yfinance
 import openpyxl
 import shutil
+import xlwings
 import pathlib
 import os
 from datetime import datetime
@@ -79,7 +80,9 @@ class Stock(Asset):
         else:
             new_val_name = self.security_code + " " + os.path.basename(template_path_list[0])
             if not pathlib.Path(new_val_name).exists():
-                shutil.copy(template_path_list[0], new_val_name)
+                shutil.copy2(template_path_list[0], new_val_name)
+                # with xlwings.App(visible=False) as app:
+                #     xl_book = xlwings.Book(p)
                 new_bool = True
             # load and update the new valuation xlsx
             wb = openpyxl.load_workbook(new_val_name)
