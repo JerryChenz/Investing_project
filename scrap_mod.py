@@ -33,11 +33,10 @@ def scrap_data(ticker, url):
     return json_data
 
 
-def _parse_table(json_info):
+def _parse_table(json_info, year):
     """Parse the raw list. Return a clean_dict with t-i year and value pair"""
     clean_dict = {}
 
-    year = int(list(reversed(json_info))[0]['asOfDate'][:4])
     for yearly in reversed(json_info):
         if yearly:
             clean_dict[year] = yearly['reportedValue']['raw']
@@ -57,23 +56,26 @@ def get_income_statement(ticker):
     json_data = scrap_data(ticker, url_financials)
     json_is = json_data['context']['dispatcher']['stores']['QuoteTimeSeriesStore']['timeSeries']
 
+    # last financial year
+    last_year = int(list(reversed(json_is['annualTotalRevenue']))[0]['asOfDate'][:4])
+
     # sales
-    sales_dict = _parse_table(json_is['annualTotalRevenue'])
+    sales_dict = _parse_table(json_is['annualTotalRevenue'], last_year)
     is_dict['sales'] = sales_dict
     # cogs
-    cogs_dict = _parse_table(json_is['annualCostOfRevenue'])
+    cogs_dict = _parse_table(json_is['annualCostOfRevenue'], last_year)
     is_dict['cogs'] = cogs_dict
     # operating expenses
-    op_cost_dict = _parse_table(json_is['annualOperatingExpense'])
+    op_cost_dict = _parse_table(json_is['annualOperatingExpense'], last_year)
     is_dict['op_cost'] = op_cost_dict
     # interest expense
-    interest_dict = _parse_table(json_is['annualInterestExpense'])
+    interest_dict = _parse_table(json_is['annualInterestExpense'], last_year)
     is_dict['interest'] = interest_dict
     # annualNetIncome
-    ni_dict = _parse_table(json_is['annualNetIncome'])
+    ni_dict = _parse_table(json_is['annualNetIncome'], last_year)
     is_dict['net_income'] = ni_dict
 
-    return pd.DataFrame(is_dict).transpose()
+    return pd.DataFrame(is_dict).transpose().fillna(0)
 
 
 def get_balance_sheet(ticker):
@@ -86,22 +88,25 @@ def get_balance_sheet(ticker):
     json_data = scrap_data(ticker, url_bs)
     json_bs = json_data['context']['dispatcher']['stores']['QuoteTimeSeriesStore']['timeSeries']
 
+    # last financial year
+    last_year = int(list(reversed(json_bs['annualCurrentAssets']))[0]['asOfDate'][:4])
+
     # current assets
-    current_assets_dict = _parse_table(json_bs['annualCurrentAssets'])
+    current_assets_dict = _parse_table(json_bs['annualCurrentAssets'], last_year)
     # current liabilities
-    current_liabilities_dict = _parse_table(json_bs['annualCurrentLiabilities'])
+    current_liabilities_dict = _parse_table(json_bs['annualCurrentLiabilities'], last_year)
     # ST Interest-bearing Debt
-    short_debt_dict = _parse_table(json_bs['annualCurrentDebtAndCapitalLeaseObligation'])
+    short_debt_dict = _parse_table(json_bs['annualCurrentDebtAndCapitalLeaseObligation'], last_year)
     # LT Interest-bearing Debt
-    long_debt_dict = _parse_table(json_bs['annualLongTermDebtAndCapitalLeaseObligation'])
+    long_debt_dict = _parse_table(json_bs['annualLongTermDebtAndCapitalLeaseObligation'], last_year)
     # Equity
-    equity_dict = _parse_table(json_bs['annualTotalEquityGrossMinorityInterest'])
+    equity_dict = _parse_table(json_bs['annualTotalEquityGrossMinorityInterest'], last_year)
     # Minority interests
-    minority_interest_dict = _parse_table(json_bs['annualMinorityInterest'])
+    minority_interest_dict = _parse_table(json_bs['annualMinorityInterest'], last_year)
     # Cash & Cash Equivalents
-    cash_dict = _parse_table(json_bs['annualCashAndCashEquivalents'])
+    cash_dict = _parse_table(json_bs['annualCashAndCashEquivalents'], last_year)
     # PP&E
-    ppe_dict = _parse_table(json_bs['annualNetPPE'])
+    ppe_dict = _parse_table(json_bs['annualNetPPE'], last_year)
 
     """
     Non-operating Asset Estimate (Decommissioned)
@@ -126,4 +131,4 @@ def get_balance_sheet(ticker):
     # bs_dict['non_op_asset'] = non_op_asset_dict # Decommissioned
     bs_dict['ppe'] = ppe_dict
 
-    return pd.DataFrame(bs_dict).transpose()
+    return pd.DataFrame(bs_dict).transpose().fillna(0)

@@ -13,6 +13,11 @@ class Asset:
 
     def __init__(self, security_code):
         self.security_code = security_code
+        self.name = None
+        self.price = None
+        self.exchange = None
+        self.excess_return = None
+        self.target_buy = None
 
 
 class Stock(Asset):
@@ -22,15 +27,26 @@ class Stock(Asset):
         """ """
         super().__init__(security_code)
 
-        ticker_data = yfinance.Ticker(security_code)
+        self.dividends = None
+        self.shares = None
+        self.report_currency = None
+        self.is_df = None
+        self.bs_df = None
+        self.next_earnings = None
+
+    def load_from_yf(self):
+        """Scrap the data from yahoo finance"""
+
+        ticker_data = yfinance.Ticker(self.security_code)
+
         self.name = ticker_data.info['shortName']
         self.price = [ticker_data.info['currentPrice'], ticker_data.info['currency']]
         self.dividends = ticker_data.dividends
         self.exchange = ticker_data.info['exchange']
         self.shares = ticker_data.info['sharesOutstanding']
         self.report_currency = ticker_data.info['financialCurrency']
-        self.is_df = scrap_mod.get_income_statement(security_code)
-        self.bs_df = scrap_mod.get_balance_sheet(security_code)
+        self.is_df = scrap_mod.get_income_statement(self.security_code)
+        self.bs_df = scrap_mod.get_balance_sheet(self.security_code)
         self.next_earnings = pd.to_datetime(datetime.fromtimestamp(ticker_data.info['mostRecentQuarter'])
                                             .strftime("%Y-%m-%d")) + pd.DateOffset(months=6)
 
@@ -45,9 +61,9 @@ class Stock(Asset):
         try:
             template_folder_path = cwd / 'Template'
             if pathlib.Path(template_folder_path).exists():
-                template_file_path = [val_file_path for val_file_path in template_folder_path.iterdir()
+                template_path_list = [val_file_path for val_file_path in template_folder_path.iterdir()
                                       if template_folder_path.is_dir() and val_file_path.is_file()]
-                if len(template_file_path) > 1 or len(template_file_path) == 0:
+                if len(template_path_list) > 1 or len(template_path_list) == 0:
                     raise FileNotFoundError("The template file error", "temp_file")
             else:
                 raise FileNotFoundError("The template folder doesn't exist", "temp_folder")
@@ -57,9 +73,9 @@ class Stock(Asset):
             if err.args[1] == "temp_file":
                 print("The template file error")
         else:
-            new_val_name = self.security_code + " " + os.path.basename(template_file_path[0])
+            new_val_name = self.security_code + " " + os.path.basename(template_path_list[0])
             if not pathlib.Path(new_val_name).exists():
-                shutil.copy(template_file_path[0], new_val_name)
+                shutil.copy(template_path_list[0], new_val_name)
                 new_bool = True
 
         # load and update the new valuation xlsx
