@@ -22,15 +22,16 @@ class Stock(Securities):
         """ """
         super().__init__(security_code)
 
-        ticker_info = yfinance.Ticker(security_code).info
-        self.name = ticker_info['shortName']
-        self.price = [ticker_info['currentPrice'], ticker_info['currency']]
-        self.exchange = ticker_info['exchange']
-        self.shares = ticker_info['sharesOutstanding']
-        self.report_currency = ticker_info['financialCurrency']
+        ticker_data = yfinance.Ticker(security_code)
+        self.name = ticker_data.info['shortName']
+        self.price = [ticker_data.info['currentPrice'], ticker_data.info['currency']]
+        self.dividends = ticker_data.dividends
+        self.exchange = ticker_data.info['exchange']
+        self.shares = ticker_data.info['sharesOutstanding']
+        self.report_currency = ticker_data.info['financialCurrency']
         self.is_df = scrap_mod.get_income_statement(security_code)
         self.bs_df = scrap_mod.get_balance_sheet(security_code)
-        self.next_earnings = pd.to_datetime(datetime.fromtimestamp(ticker_info['mostRecentQuarter'])
+        self.next_earnings = pd.to_datetime(datetime.fromtimestamp(ticker_data.info['mostRecentQuarter'])
                                             .strftime("%Y-%m-%d")) + pd.DateOffset(months=6)
 
     def create_val_xlsx(self):
