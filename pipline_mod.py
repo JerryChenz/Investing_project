@@ -140,4 +140,3 @@ class Pipeline:
 
         # Current Holdings
         holding_sheet.range('I2').value = datetime.today().strftime('%Y-%m-%d')
-
