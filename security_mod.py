@@ -16,6 +16,7 @@ class Asset:
         self.security_code = security_code
         self.name = None
         self.price = None
+        self.price_currency = None
         self.exchange = None
         self.ideal_price = None
         self.current_irr = None
@@ -23,6 +24,9 @@ class Asset:
         self.val_status = None
         self.periodic_payment = None
         self.next_earnings = None  # next coupon date for bonds
+        self.invest_horizon = None
+        self.unit_cost = None
+        self.total_units = None
 
 
 class Stock(Asset):
