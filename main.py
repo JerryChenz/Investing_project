@@ -1,3 +1,4 @@
+from datetime import datetime
 import security_mod
 import pipline_mod
 
@@ -23,9 +24,14 @@ def update_pipeline_monitor():
     o.load_opportunities()
 
 
+def days_between(d1, d2):
+    d1 = datetime.strptime(d1, "%Y-%m-%d")
+    d2 = datetime.strptime(d2, "%Y-%m-%d")
+    return abs((d2 - d1).days)
+
+
 if __name__ == '__main__':
-    #stare_list = ['0806.HK', '1475.HK', '1766.HK', '6186.HK']
-    #for s in stare_list:
+    # stare_list = ['0806.HK', '1475.HK', '1766.HK', '6186.HK']
+    # for s in stare_list:
     #     gen_val_xlsx(s)
-    gen_val_xlsx('1475.HK')
-    #update_pipeline_monitor()
+    update_pipeline_monitor()

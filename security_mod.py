@@ -1,5 +1,5 @@
 import yfinance
-import openpyxl
+import xlwings
 import pathlib
 import shutil
 import os
@@ -7,7 +7,6 @@ from datetime import datetime
 import pandas as pd
 import scrap_mod
 import re
-import sys
 
 
 class Asset:
@@ -22,6 +21,8 @@ class Asset:
         self.current_irr = None
         self.risk_premium = None
         self.val_status = None
+        self.periodic_payment = None
+        self.next_earnings = None  # next coupon date for bonds
 
 
 class Stock(Asset):
@@ -31,12 +32,10 @@ class Stock(Asset):
         """ """
         super().__init__(security_code)
 
-        self.dividends = None
         self.shares = None
         self.report_currency = None
         self.is_df = None
         self.bs_df = None
-        self.next_earnings = None
 
     def load_from_yf(self):
         """Scrap the data from yahoo finance"""
@@ -45,7 +44,6 @@ class Stock(Asset):
 
         self.name = ticker_data.info['shortName']
         self.price = [ticker_data.info['currentPrice'], ticker_data.info['currency']]
-        self.dividends = ticker_data.dividends
         self.exchange = ticker_data.info['exchange']
         self.shares = ticker_data.info['sharesOutstanding']
         self.report_currency = ticker_data.info['financialCurrency']
@@ -83,63 +81,60 @@ class Stock(Asset):
             if not pathlib.Path(new_val_path).exists():
                 shutil.copy(template_path_list[0], new_val_path)
                 new_bool = True
-                sys.exit()
             # load and update the new valuation xlsx
             if os.path.exists(new_val_path):
-                wb = openpyxl.load_workbook(new_val_name)
-                self.update_dashboard(wb, new_bool)
-                self.update_data(wb)
-                wb.save(new_val_name)
+                with xlwings.App(visible=False):
+                    xl_book = xlwings.Book(new_val_path)
+                    self.update_dashboard(xl_book.sheets('Dashboard'), new_bool)
+                    self.update_data(xl_book.sheets('Data'))
+                    xl_book.save(new_val_name)
             else:
-                print('missing')
+                raise FileNotFoundError("The valuation file error", "val_file")
 
-    def update_dashboard(self, wb, new_bool=False):
+    def update_dashboard(self, dash_sheet, new_bool=False):
         """Update the Dashboard sheet"""
 
-        dash_sheet = wb['Dashboard']
         if new_bool:
-            dash_sheet.cell(row=4, column=3).value = self.name
-            dash_sheet.cell(row=5, column=3).value = datetime.today().strftime('%Y-%m-%d')
-        dash_sheet.cell(row=3, column=3).value = self.security_code
-        dash_sheet.cell(row=3, column=8).value = self.exchange
-        dash_sheet.cell(row=12, column=8).value = self.report_currency
-        dash_sheet.cell(row=6, column=3).value = self.next_earnings
-        if pd.to_datetime(dash_sheet.cell(row=5, column=3).value) > \
-                pd.to_datetime(dash_sheet.cell(row=6, column=3).value):
+            dash_sheet.range('C4').value = self.name
+            dash_sheet.range('C5').value = datetime.today().strftime('%Y-%m-%d')
+        dash_sheet.range('C3').value = self.security_code
+        dash_sheet.range('H3').value = self.exchange
+        dash_sheet.range('H12').value = self.report_currency
+        dash_sheet.range('C6').value = self.next_earnings
+        if pd.to_datetime(dash_sheet.range('C5').value) > pd.to_datetime(dash_sheet.range('C6').value):
             self.val_status = "Outdated"
         else:
             self.val_status = ""
-        dash_sheet.cell(row=6, column=5).value = self.val_status
-        dash_sheet.cell(row=4, column=8).value = self.price[0]
-        dash_sheet.cell(row=4, column=9).value = self.price[1]
-        dash_sheet.cell(row=5, column=8).value = self.shares
-        dash_sheet.cell(row=13, column=8).value = scrap_mod.get_forex_rate(self.price[1], self.report_currency)
+        dash_sheet.range('E6').value = self.val_status
+        dash_sheet.range('H4').value = self.price[0]
+        dash_sheet.range('I4').value = self.price[1]
+        dash_sheet.range('H5').value = self.shares
+        dash_sheet.range('H13').value = scrap_mod.get_forex_rate(self.price[1], self.report_currency)
 
-    def update_data(self, wb):
+    def update_data(self, data_sheet):
         """Update the Data sheet"""
 
-        data_sheet = wb['Data']
-        data_sheet.cell(row=3, column=3).value = self.is_df.columns[0]  # last financial year
+        data_sheet.range('C3').value = self.is_df.columns[0]  # last financial year
         # figures in
         figures_in = int((len(str(self.is_df.iloc[0, 0])) - 9) / 3 + 0.99) * 1000
-        data_sheet.cell(row=4, column=3).value = figures_in
+        data_sheet.range('C4').value = figures_in
         # load income statement
         for i in range(len(self.is_df.columns)):
-            data_sheet.cell(row=7, column=i + 3).value = int(self.is_df.iloc[0, i] / figures_in)
-            data_sheet.cell(row=9, column=i + 3).value = int(self.is_df.iloc[1, i] / figures_in)
-            data_sheet.cell(row=11, column=i + 3).value = int(self.is_df.iloc[2, i] / figures_in)
-            data_sheet.cell(row=17, column=i + 3).value = int(self.is_df.iloc[3, i] / figures_in)
-            data_sheet.cell(row=18, column=i + 3).value = int(self.is_df.iloc[4, i] / figures_in)
+            data_sheet.range(7, i + 3).value = int(self.is_df.iloc[0, i] / figures_in)
+            data_sheet.range(9, i + 3).value = int(self.is_df.iloc[1, i] / figures_in)
+            data_sheet.range(11, i + 3).value = int(self.is_df.iloc[2, i] / figures_in)
+            data_sheet.range(17, i + 3).value = int(self.is_df.iloc[3, i] / figures_in)
+            data_sheet.range(18, i + 3).value = int(self.is_df.iloc[4, i] / figures_in)
         # load balance sheet
         for i in range(1, len(self.bs_df.columns)):
-            data_sheet.cell(row=20, column=i + 3).value = int(self.bs_df.iloc[0, i] / figures_in)
-            data_sheet.cell(row=21, column=i + 3).value = int(self.bs_df.iloc[1, i] / figures_in)
-            data_sheet.cell(row=22, column=i + 3).value = int(self.bs_df.iloc[2, i] / figures_in)
-            data_sheet.cell(row=23, column=i + 3).value = int(self.bs_df.iloc[3, i] / figures_in)
-            data_sheet.cell(row=25, column=i + 3).value = int(self.bs_df.iloc[4, i] / figures_in)
-            data_sheet.cell(row=26, column=i + 3).value = int(self.bs_df.iloc[5, i] / figures_in)
-            data_sheet.cell(row=27, column=i + 3).value = int(self.bs_df.iloc[6, i] / figures_in)
-            data_sheet.cell(row=28, column=i + 3).value = int(self.bs_df.iloc[7, i] / figures_in)
+            data_sheet.range(20, i + 3).value = int(self.bs_df.iloc[0, i] / figures_in)
+            data_sheet.range(21, i + 3).value = int(self.bs_df.iloc[1, i] / figures_in)
+            data_sheet.range(22, i + 3).value = int(self.bs_df.iloc[2, i] / figures_in)
+            data_sheet.range(23, i + 3).value = int(self.bs_df.iloc[3, i] / figures_in)
+            data_sheet.range(25, i + 3).value = int(self.bs_df.iloc[4, i] / figures_in)
+            data_sheet.range(26, i + 3).value = int(self.bs_df.iloc[5, i] / figures_in)
+            data_sheet.range(27, i + 3).value = int(self.bs_df.iloc[6, i] / figures_in)
+            data_sheet.range(28, i + 3).value = int(self.bs_df.iloc[7, i] / figures_in)
 
     def export_statements(self):
         """Export the income statement and balance sheet"""

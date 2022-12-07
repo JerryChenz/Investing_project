@@ -11,40 +11,38 @@ import re
 def update_stocks_val(dash_sheet):
     """Update the stock valuations in the pipeline folder"""
 
-    ticker_info = yfinance.Ticker(dash_sheet.cell(row=3, column=3).value).info
+    ticker_info = yfinance.Ticker(dash_sheet.range('C3').value).info
 
-    if pd.to_datetime(dash_sheet.cell(row=5, column=3).value) > pd.to_datetime(dash_sheet.cell(row=5, column=3).value):
-        dash_sheet.cell(row=6, column=5).value = "Outdated"
+    if pd.to_datetime(dash_sheet.range('C5').value) > pd.to_datetime(dash_sheet.range('C6').value):
+        dash_sheet.range('E6').value = "Outdated"
     else:
-        dash_sheet.cell(row=6, column=5).value = ""
-    dash_sheet.cell(row=4, column=8).value = ticker_info['currentPrice']
-    # dash_sheet.cell(row=5, column=8).value = ticker_info['sharesOutstanding']
-    dash_sheet.cell(row=13, column=8).value = scrap_mod.get_forex_rate(dash_sheet.cell(row=4, column=9).value,
-                                                                       dash_sheet.cell(row=12, column=8).value)
+        dash_sheet.range('E6').value = ""
+    dash_sheet.range('H4').value = ticker_info['currentPrice']
+    # dash_sheet.range('H5').value = ticker_info['sharesOutstanding']
+    dash_sheet.range('H13').value = scrap_mod.get_forex_rate(dash_sheet.range('I4').value,
+                                                             dash_sheet.range('H12').value)
 
 
-def initiate_asset(p):
+def instantiate_asset(p):
     """initiate an asset from the valuation file"""
 
-    # Update the stock_valuations files first
-    wb = openpyxl.load_workbook(filename=p)
-    dash_sheet_1 = wb['Dashboard']
-    update_stocks_val(dash_sheet_1)
-    wb.save(p)
-
     # get the formula results using xlwings because openpyxl doesn't evaluate formula
-    with xlwings.App(visible=False) as app:
+    with xlwings.App(visible=False):
         xl_book = xlwings.Book(p)
-        dash_sheet_2 = xl_book.sheets('Dashboard')
-        a = security_mod.Asset(dash_sheet_2.range('C3').value)
-        a.name = dash_sheet_2.range('C4').value
-        a.exchange = dash_sheet_2.range('H3').value
-        a.price = dash_sheet_2.range('H4').value
-        a.ideal_price = dash_sheet_2.range('C21').value
-        a.current_irr = dash_sheet_2.range('H21').value
-        a.risk_premium = dash_sheet_2.range('H22').value
-        a.val_status = dash_sheet_2.range('E6').value
-        xl_book.close()
+        dash_sheet = xl_book.sheets('Dashboard')
+        # Update the stock_valuations files first in the pipeline folder
+        update_stocks_val(dash_sheet)
+        # instantiate the assets
+        a = security_mod.Asset(dash_sheet.range('C3').value)
+        a.name = dash_sheet.range('C4').value
+        a.exchange = dash_sheet.range('H3').value
+        a.price = dash_sheet.range('H4').value
+        a.ideal_price = dash_sheet.range('C22').value
+        a.current_irr = dash_sheet.range('H22').value
+        a.risk_premium = dash_sheet.range('H23').value
+        a.val_status = dash_sheet.range('E6').value
+        a.periodic_payment = dash_sheet.range('C19').value
+        a.next_earnings = dash_sheet.range('C6').value
 
     return a
 
@@ -60,7 +58,7 @@ class Pipeline:
 
         # Copy the latest Valuation template
         opportunities_folder_path = pathlib.Path.cwd().resolve() / 'Opportunities'
-        r = re.compile(".*Valuation v")
+        r = re.compile(".*Valuation_v")
 
         try:
             if pathlib.Path(opportunities_folder_path).exists():
@@ -80,7 +78,7 @@ class Pipeline:
             # load and update the new valuation xlsx
             for p in opportunities_path_list:
                 # load and update the new valuation xlsx
-                self.assets.append(initiate_asset(p))
+                self.assets.append(instantiate_asset(p))
             # load the opportunities
             monitor_file_path = opportunities_folder_path / 'Pipeline_monitor' / 'Pipeline_monitor.xlsx'
             monitor_wb = openpyxl.load_workbook(monitor_file_path)
@@ -105,6 +103,9 @@ class Pipeline:
             monitor_sheet.cell(row=r, column=6).value = a.current_irr
             monitor_sheet.cell(row=r, column=7).value = a.risk_premium
             monitor_sheet.cell(row=r, column=8).value = f'=F{r}-G{r}'
-            monitor_sheet.cell(row=r, column=9).value = a.ideal_price
-            monitor_sheet.cell(row=r, column=10).value = a.val_status
+            monitor_sheet.cell(row=r, column=9).value = a.periodic_payment
+            monitor_sheet.cell(row=r, column=10).value = f'=I{r}/E{r}'
+            monitor_sheet.cell(row=r, column=11).value = a.ideal_price
+            monitor_sheet.cell(row=r, column=12).value = a.next_earnings
+            monitor_sheet.cell(row=r, column=13).value = a.val_status
             r += 1
