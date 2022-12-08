@@ -83,15 +83,18 @@ class Stock(Asset):
             new_val_name = self.security_code + "_" + os.path.basename(template_path_list[0])
             new_val_path = cwd / new_val_name
             if not pathlib.Path(new_val_path).exists():
+                print(f'Copying template to create {new_val_name}...')
                 shutil.copy(template_path_list[0], new_val_path)
                 new_bool = True
             # load and update the new valuation xlsx
             if os.path.exists(new_val_path):
-                with xlwings.App(visible=False):
+                print(f'Updating {new_val_name}...')
+                with xlwings.App(visible=False) as app:
                     xl_book = xlwings.Book(new_val_path)
                     self.update_dashboard(xl_book.sheets('Dashboard'), new_bool)
                     self.update_data(xl_book.sheets('Data'))
                     xl_book.save(new_val_name)
+                    xl_book.close()
             else:
                 raise FileNotFoundError("The valuation file error", "val_file")
 
@@ -124,21 +127,21 @@ class Stock(Asset):
         data_sheet.range('C4').value = figures_in
         # load income statement
         for i in range(len(self.is_df.columns)):
-            data_sheet.range(7, i + 3).value = int(self.is_df.iloc[0, i] / figures_in)
-            data_sheet.range(9, i + 3).value = int(self.is_df.iloc[1, i] / figures_in)
-            data_sheet.range(11, i + 3).value = int(self.is_df.iloc[2, i] / figures_in)
-            data_sheet.range(17, i + 3).value = int(self.is_df.iloc[3, i] / figures_in)
-            data_sheet.range(18, i + 3).value = int(self.is_df.iloc[4, i] / figures_in)
+            data_sheet.range((7, i + 3)).value = int(self.is_df.iloc[0, i] / figures_in)
+            data_sheet.range((9, i + 3)).value = int(self.is_df.iloc[1, i] / figures_in)
+            data_sheet.range((11, i + 3)).value = int(self.is_df.iloc[2, i] / figures_in)
+            data_sheet.range((17, i + 3)).value = int(self.is_df.iloc[3, i] / figures_in)
+            data_sheet.range((18, i + 3)).value = int(self.is_df.iloc[4, i] / figures_in)
         # load balance sheet
         for i in range(1, len(self.bs_df.columns)):
-            data_sheet.range(20, i + 3).value = int(self.bs_df.iloc[0, i] / figures_in)
-            data_sheet.range(21, i + 3).value = int(self.bs_df.iloc[1, i] / figures_in)
-            data_sheet.range(22, i + 3).value = int(self.bs_df.iloc[2, i] / figures_in)
-            data_sheet.range(23, i + 3).value = int(self.bs_df.iloc[3, i] / figures_in)
-            data_sheet.range(25, i + 3).value = int(self.bs_df.iloc[4, i] / figures_in)
-            data_sheet.range(26, i + 3).value = int(self.bs_df.iloc[5, i] / figures_in)
-            data_sheet.range(27, i + 3).value = int(self.bs_df.iloc[6, i] / figures_in)
-            data_sheet.range(28, i + 3).value = int(self.bs_df.iloc[7, i] / figures_in)
+            data_sheet.range((20, i + 3)).value = int(self.bs_df.iloc[0, i] / figures_in)
+            data_sheet.range((21, i + 3)).value = int(self.bs_df.iloc[1, i] / figures_in)
+            data_sheet.range((22, i + 3)).value = int(self.bs_df.iloc[2, i] / figures_in)
+            data_sheet.range((23, i + 3)).value = int(self.bs_df.iloc[3, i] / figures_in)
+            data_sheet.range((25, i + 3)).value = int(self.bs_df.iloc[4, i] / figures_in)
+            data_sheet.range((26, i + 3)).value = int(self.bs_df.iloc[5, i] / figures_in)
+            data_sheet.range((27, i + 3)).value = int(self.bs_df.iloc[6, i] / figures_in)
+            data_sheet.range((28, i + 3)).value = int(self.bs_df.iloc[7, i] / figures_in)
 
     def export_statements(self):
         """Export the income statement and balance sheet"""
