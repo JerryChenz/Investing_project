@@ -26,12 +26,15 @@ def update_stocks_val(dash_sheet):
 def instantiate_asset(p):
     """initiate an asset from the valuation file"""
 
+    r_stock = re.compile(".*_Stock_Valuation_v")
+
     # get the formula results using xlwings because openpyxl doesn't evaluate formula
     with xlwings.App(visible=False) as app:
         xl_book = app.books.open(p)
         dash_sheet = xl_book.sheets('Dashboard')
         # Update the stock_valuations files first in the pipeline folder
-        update_stocks_val(dash_sheet)
+        if r_stock.match(str(p)):
+            update_stocks_val(dash_sheet)
         # instantiate the assets
         a = security_mod.Asset(dash_sheet.range('C3').value)
         a.name = dash_sheet.range('C4').value
