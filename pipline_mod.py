@@ -19,8 +19,8 @@ def update_stocks_val(dash_sheet):
         dash_sheet.range('E6').value = ""
     dash_sheet.range('H4').value = ticker_info['currentPrice']
     # dash_sheet.range('H5').value = ticker_info['sharesOutstanding']
-    dash_sheet.range('H13').value = scrap_mod.get_forex_rate(dash_sheet.range('I4').value,
-                                                             dash_sheet.range('H12').value)
+    dash_sheet.range('H13').value = scrap_mod.get_forex_rate(dash_sheet.range('H12').value,
+                                                             dash_sheet.range('I4').value)
 
 
 def instantiate_asset(p):

@@ -116,14 +116,18 @@ class Stock(Asset):
         dash_sheet.range('H4').value = self.price[0]
         dash_sheet.range('I4').value = self.price[1]
         dash_sheet.range('H5').value = self.shares
-        dash_sheet.range('H13').value = scrap_mod.get_forex_rate(self.price[1], self.report_currency)
+        dash_sheet.range('H13').value = scrap_mod.get_forex_rate(self.report_currency, self.price[1])
 
     def update_data(self, data_sheet):
         """Update the Data sheet"""
 
         data_sheet.range('C3').value = self.is_df.columns[0]  # last financial year
-        # figures in
-        figures_in = int((len(str(self.is_df.iloc[0, 0])) - 9) / 3 + 0.99) * 1000
+        if len(str(self.is_df.iloc[0, 0])) <= 6:
+            figures_in = 1
+        elif len(str(self.is_df.iloc[0, 0])) <= 9:
+            figures_in = 1000
+        else:
+            figures_in = int((len(str(self.is_df.iloc[0, 0])) - 9) / 3 + 0.99) * 1000
         data_sheet.range('C4').value = figures_in
         # load income statement
         for i in range(len(self.is_df.columns)):

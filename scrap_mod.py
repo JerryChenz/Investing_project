@@ -7,7 +7,7 @@ from forex_python.converter import CurrencyRates
 
 
 def get_forex_rate(buy, sell):
-    """get exchange rate"""
+    """get exchange rate, buy is ask and sell is bid"""
 
     if buy != sell:
         c = CurrencyRates()
